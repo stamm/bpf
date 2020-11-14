@@ -1,0 +1,22 @@
+#!/usr/bin/env bpftrace
+/*
+ * lo_down.bt    Detect when lo set down
+ *               For Linux, uses bpftrace, eBPF.
+ *
+ * 15-Nov-2020	Rustam Zagirov	Created this.
+ */
+
+#include <linux/netdevice.h>
+
+k:dev_change_flags {
+  $nd = (struct net_device *)arg0;
+  if ($nd->name != "lo" || arg1 != 8) {
+    return
+  }
+  printf("change: pid: %d, comm: %s, flags: %d, interface: %s", pid, comm, arg1, $nd->name);
+  printf("kernel stack: %s, user stack: %s\n",  kstack, ustack);
+}
+
+k:__dev_notify_flags {
+  printf("notify: %d %d, changes: %d\n", arg0, arg1, arg2);
+}

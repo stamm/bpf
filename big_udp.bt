@@ -1,0 +1,21 @@
+#!/usr/bin/env bpftrace
+/*
+ * big_udp.bt    Showing > 32000 bytes udp transmition
+ *               For Linux, uses bpftrace, eBPF.
+ *
+ * 15-Nov-2020	Rustam Zagirov	Created this.
+ */
+
+#include <net/sock.h>
+#include <linux/socket.h>
+#include <linux/sched.h>
+
+k:udp_sendmsg /arg2 > 32000 / {
+        $sk = (struct sock *)arg0;
+        $dport = $sk->__sk_common.skc_dport;
+        $dport = ($dport >> 8) | (($dport << 8) & 0x00FF00);
+
+        $task = (struct task_struct *)curtask;
+        // @send_bytes[pid, $task->cpu, comm, ntop(AF_INET, $sk->__sk_common.skc_daddr), $dport] = lhist(arg2, 32000, 65000, 2000);
+        @send_bytes[pid, comm, ntop($sk->__sk_common.skc_daddr), $dport] = stats(arg2);
+}
