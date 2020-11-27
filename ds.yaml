@@ -1,0 +1,62 @@
+---
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: bpf-lo-down
+  namespace: ozon-system
+spec:
+  selector:
+    matchLabels:
+      k8s-app: bpf-lo-down
+  template:
+    metadata:
+      labels:
+        k8s-app: bpf-lo-down
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      hostNetwork: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: bpftrace
+          image: SETIMAGE
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: 1m
+            limits:
+              cpu: "1"
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          volumeMounts:
+            - mountPath: /lib/modules
+              name: lib-modules
+              readOnly: true
+            - mountPath: /sys
+              name: sys
+              readOnly: true
+            - mountPath: /etc/localtime
+              name: localtime
+              readOnly: true
+            - mountPath: /usr/src
+              name: usr-src
+              readOnly: true
+      volumes:
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+        - name: usr-src
+          hostPath:
+            path: /usr/src
